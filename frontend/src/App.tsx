@@ -3,12 +3,21 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-
 import { useAuth } from '@/lib/auth';
 import { Login } from '@/pages/Login';
 import { Hub } from '@/pages/Hub';
+import { Usuarios } from '@/pages/Usuarios';
 import { ProjectLayout } from '@/pages/project/ProjectLayout';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { usuario, cargando } = useAuth();
   if (cargando) return <div style={{ padding: 40, color: 'var(--ink-3)' }}>Cargando…</div>;
   if (!usuario) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { usuario } = useAuth();
+  if (usuario && usuario.rol !== 'Admin' && usuario.rol !== 'DataOwner') {
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -35,6 +44,12 @@ export function App() {
 
         {/* Hub — home */}
         <Route path="/" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
+
+        {/* Gestión de usuarios — solo Admin / DataOwner */}
+        <Route
+          path="/usuarios"
+          element={<ProtectedRoute><AdminRoute><Usuarios /></AdminRoute></ProtectedRoute>}
+        />
 
         {/* Project pages */}
         <Route path="/p/:projectId" element={<ProjectRedirect />} />

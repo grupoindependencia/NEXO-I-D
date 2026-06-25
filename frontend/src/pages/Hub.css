@@ -87,6 +87,17 @@
 }
 .hub-logout:hover { background: rgba(255, 255, 255, .06); color: rgba(255, 255, 255, .7); }
 
+.hub-users-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600;
+  color: rgba(255, 255, 255, .72);
+  background: rgba(255, 255, 255, .06);
+  border: 1px solid rgba(255, 255, 255, .12);
+  padding: 5px 10px; border-radius: 6px;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.hub-users-btn:hover { background: rgba(255, 255, 255, .12); color: #fff; border-color: rgba(255, 255, 255, .2); }
+
 /* Main */
 .hub-main {
   max-width: 1060px;

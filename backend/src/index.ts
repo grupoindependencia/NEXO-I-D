@@ -10,6 +10,7 @@ import authRoutes from './routes/auth';
 import proyectosRoutes from './routes/proyectos';
 import nodosRoutes from './routes/nodos';
 import checklistsRoutes from './routes/checklists';
+import usuariosRoutes from './routes/usuarios';
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '4000', 10);
@@ -39,6 +40,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/proyectos', proyectosRoutes);
 app.use('/api/nodos', nodosRoutes);
 app.use('/api/checklists', checklistsRoutes);
+app.use('/api/usuarios', usuariosRoutes);
 
 // 404 solo para rutas de API no encontradas
 app.use('/api', (req, res) => {

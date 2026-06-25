@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Link2, Link2Off, Plus, X, Pencil } from 'lucide-react';
+import { LogOut, Link2, Link2Off, Plus, X, Pencil, Users } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { PROJECTS, LIFECYCLE_CONFIG, LIFECYCLE_ACCENT, type LifecycleStatus } from '@/config/projects';
@@ -318,6 +318,11 @@ export function Hub() {
         </div>
         <div className="hub-topbar-right">
           {isAdmin && <span className="hub-admin-badge">Admin</span>}
+          {isAdmin && (
+            <button className="hub-users-btn" onClick={() => navigate('/usuarios')} title="Gestión de usuarios">
+              <Users size={13} /> Usuarios
+            </button>
+          )}
           <span className="hub-topbar-user">{usuario?.nombre?.split(' ')[0]}</span>
           <div className="hub-avatar">{avatarInitials}</div>
           <button className="hub-logout" onClick={logout} title="Cerrar sesión">

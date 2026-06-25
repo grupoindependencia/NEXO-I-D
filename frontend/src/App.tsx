@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth';
 import { Login } from '@/pages/Login';
+import { SsoCallback } from '@/pages/SsoCallback';
 import { Hub } from '@/pages/Hub';
 import { Usuarios } from '@/pages/Usuarios';
 import { ProjectLayout } from '@/pages/project/ProjectLayout';
@@ -41,6 +42,9 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+
+        {/* SSO desde el Portal: guarda los tokens y vuelve al portal */}
+        <Route path="/sso-callback" element={<SsoCallback />} />
 
         {/* Hub — home */}
         <Route path="/" element={<ProtectedRoute><Hub /></ProtectedRoute>} />

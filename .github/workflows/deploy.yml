@@ -66,6 +66,7 @@ jobs:
           NEXOID_DB_PASSWORD:       ${{ secrets.NEXOID_DB_PASSWORD }}
           NEXOID_JWT_SECRET:        ${{ secrets.NEXOID_JWT_SECRET }}
           NEXOID_JWT_REFRESH_SECRET: ${{ secrets.NEXOID_JWT_REFRESH_SECRET }}
+          PORTAL_SSO_SECRET:        ${{ secrets.PORTAL_SSO_SECRET }}
         run: |
           cat > env.yaml <<EOF
           NODE_ENV: "production"
@@ -78,6 +79,7 @@ jobs:
           JWT_REFRESH_SECRET: "${NEXOID_JWT_REFRESH_SECRET}"
           GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
           GOOGLE_HOSTED_DOMAIN: "${GOOGLE_HOSTED_DOMAIN}"
+          PORTAL_SSO_SECRET: "${PORTAL_SSO_SECRET}"
           EOF
 
       - name: Deploy a Cloud Run

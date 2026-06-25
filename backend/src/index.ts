@@ -26,8 +26,14 @@ app.use(
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    frameguard: false, // sin X-Frame-Options: DENY → el embedding se controla con CSP frame-ancestors
   }),
 );
+// Embebible solo desde el portal corporativo (modo iframe).
+app.use((_req, res, next) => {
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://portal.cindependencia.cl");
+  next();
+});
 app.use(
   cors({
     origin: CORS_ORIGIN.split(',').map((s) => s.trim()),

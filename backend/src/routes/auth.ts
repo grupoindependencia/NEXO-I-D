@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../lib/prisma';
@@ -29,8 +30,8 @@ type UsuarioSesion = {
   usuarioDepartamento: string | null;
 };
 
-/** Firma access+refresh, persiste el refresh, actualiza último login y responde. */
-async function emitirSesion(usuario: UsuarioSesion, res: Response) {
+/** Firma access+refresh, persiste el refresh y actualiza último login. */
+async function crearSesion(usuario: UsuarioSesion): Promise<{ accessToken: string; refreshToken: string }> {
   const payload = {
     usuarioId: usuario.usuarioId,
     correo: usuario.usuarioCorreo,
@@ -51,6 +52,12 @@ async function emitirSesion(usuario: UsuarioSesion, res: Response) {
     data: { usuarioUltimoLogin: new Date() },
   });
 
+  return { accessToken, refreshToken };
+}
+
+/** Crea la sesión y responde el JSON estándar de login. */
+async function emitirSesion(usuario: UsuarioSesion, res: Response) {
+  const { accessToken, refreshToken } = await crearSesion(usuario);
   return res.json({
     accessToken,
     refreshToken,
@@ -227,6 +234,78 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
     departamento: usuario.usuarioDepartamento,
     ultimoLogin: usuario.usuarioUltimoLogin,
   });
+});
+
+// ── SSO desde el Portal Independencia ───────────────────────────────────────
+// GET /api/auth/portal-sso?token=<jwt>&returnTo=<url>
+// El portal firma un JWT (HS256 con PORTAL_SSO_SECRET); lo verificamos, buscamos
+// o auto-creamos el usuario (mismo criterio que el login con Google: dominio
+// corporativo → rol Viewer) y redirigimos a /sso-callback, que guarda los tokens
+// en localStorage (cii_*) y vuelve al portal para cargar el iframe autenticado.
+const PORTAL_SSO_SECRET = process.env.PORTAL_SSO_SECRET || '';
+const PORTAL_ORIGIN = 'https://portal.cindependencia.cl';
+
+function safeReturnTo(raw: unknown): string {
+  if (typeof raw !== 'string' || !raw) return '/';
+  if (raw.startsWith('/')) return raw;
+  try {
+    if (new URL(raw).origin === PORTAL_ORIGIN) return raw;
+  } catch {
+    /* URL inválida */
+  }
+  return '/';
+}
+
+router.get('/portal-sso', async (req: Request, res: Response) => {
+  if (!PORTAL_SSO_SECRET) {
+    return res.redirect(302, `${PORTAL_ORIGIN}?error=sso_not_configured`);
+  }
+  const token = req.query.token;
+  const returnTo = safeReturnTo(req.query.returnTo);
+  if (typeof token !== 'string' || !token) {
+    return res.redirect(302, `${PORTAL_ORIGIN}?error=sso_missing`);
+  }
+
+  let correo = '';
+  let nombre = '';
+  try {
+    const payload = jwt.verify(token, PORTAL_SSO_SECRET, { algorithms: ['HS256'] }) as {
+      email?: string;
+      nombre?: string;
+    };
+    correo = (payload.email ?? '').trim().toLowerCase();
+    nombre = (payload.nombre ?? '').trim();
+  } catch {
+    return res.redirect(302, `${PORTAL_ORIGIN}?error=sso_invalid`);
+  }
+  if (!correo) return res.redirect(302, `${PORTAL_ORIGIN}?error=sso_invalid`);
+
+  if (GOOGLE_HOSTED_DOMAIN && !correo.endsWith(`@${GOOGLE_HOSTED_DOMAIN}`)) {
+    return res.redirect(302, `${PORTAL_ORIGIN}?error=sso_domain`);
+  }
+
+  let usuario = await prisma.usuario.findUnique({ where: { usuarioCorreo: correo } });
+  if (usuario && !usuario.usuarioActivo) {
+    return res.redirect(302, `${PORTAL_ORIGIN}?error=sso_inactive`);
+  }
+  if (!usuario) {
+    if (!GOOGLE_AUTO_PROVISION) {
+      return res.redirect(302, `${PORTAL_ORIGIN}?error=sso_unauthorized`);
+    }
+    usuario = await prisma.usuario.create({
+      data: {
+        usuarioCorreo: correo,
+        usuarioNombre: nombre || correo.split('@')[0],
+        usuarioRol: 'Viewer',
+        usuarioProveedorAuth: 'portal',
+        usuarioActivo: true,
+      },
+    });
+  }
+
+  const { accessToken, refreshToken } = await crearSesion(usuario);
+  const cb = new URLSearchParams({ at: accessToken, rt: refreshToken, returnTo });
+  return res.redirect(302, `/sso-callback?${cb.toString()}`);
 });
 
 export default router;

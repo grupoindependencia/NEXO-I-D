@@ -30,7 +30,7 @@ export function EditarPlantilla({ modo, plantilla, proyectoCodigo, onClose, onGu
   const [codigo, setCodigo]         = useState(plantilla?.plantillaCodigo || '');
   const [titulo, setTitulo]         = useState(plantilla?.plantillaTitulo || '');
   const [descripcion, setDescripcion] = useState(plantilla?.plantillaDescripcion || '');
-  const [frecuencia, setFrecuencia] = useState(plantilla?.plantillaFrecuencia || 'mensual');
+  const [frecuencia, setFrecuencia] = useState<string>(plantilla?.plantillaFrecuencia || 'mensual');
   const [cargo, setCargo]           = useState(plantilla?.plantillaCargo || '');
   const [responsableId, setResponsableId] = useState(plantilla?.responsableId || 0);
   const [supervisorId, setSupervisorId]   = useState(plantilla?.supervisorId || 0);

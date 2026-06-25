@@ -28,26 +28,11 @@ const FEATURES = [
 ];
 
 export function Login() {
-  const [correo, setCorreo] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
-  const login = useAuth((s) => s.login);
   const loginGoogle = useAuth((s) => s.loginGoogle);
   const googleBtnRef = useRef<HTMLDivElement>(null);
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(''); setCargando(true);
-    try {
-      await login(correo.trim().toLowerCase(), password);
-      navigate('/');
-    } catch (err) {
-      if (err instanceof ApiError) setError(err.message);
-      else setError('Error inesperado');
-    } finally { setCargando(false); }
-  };
 
   // Carga Google Identity Services y renderiza el botón "Continuar con Google"
   useEffect(() => {
@@ -113,44 +98,17 @@ export function Login() {
       <div className="login-right">
         <div className="login-form-wrap">
           <h2>Bienvenido</h2>
-          <p className="login-form-sub">Ingresa con tu correo y contraseña corporativos.</p>
+          <p className="login-form-sub">Ingresa con tu cuenta corporativa de Google.</p>
 
-          <form onSubmit={onSubmit} className="login-form">
-            <label>
-              Correo corporativo
-              <input
-                type="email"
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
-                placeholder="nombre@cindependencia.cl"
-                required
-                autoFocus
-              />
-            </label>
-            <label>
-              Contraseña
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </label>
+          {error && <div className="login-error">{error}</div>}
 
-            {error && <div className="login-error">{error}</div>}
-
-            <button type="submit" disabled={cargando}>
-              {cargando ? 'Ingresando...' : 'Iniciar sesión'}
-            </button>
-          </form>
-
-          {GOOGLE_CLIENT_ID && (
-            <>
-              <div className="login-divider"><span>o</span></div>
-              <div ref={googleBtnRef} className="login-google" />
-            </>
+          {GOOGLE_CLIENT_ID ? (
+            <div ref={googleBtnRef} className="login-google" />
+          ) : (
+            <div className="login-error">El inicio de sesión con Google no está configurado.</div>
           )}
+
+          {cargando && <p className="login-form-sub" style={{ marginTop: 14 }}>Ingresando…</p>}
         </div>
       </div>
     </div>

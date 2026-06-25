@@ -19,7 +19,15 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 // Middlewares
 // CSP/COEP desactivados: este servicio también sirve el SPA (y three.js desde CDN),
 // que el Content-Security-Policy por defecto de helmet bloquearía.
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+// COOP en 'same-origin-allow-popups': el COOP 'same-origin' por defecto rompe el
+// popup de Google Sign-In (corta window.opener y el popup queda en blanco).
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  }),
+);
 app.use(
   cors({
     origin: CORS_ORIGIN.split(',').map((s) => s.trim()),

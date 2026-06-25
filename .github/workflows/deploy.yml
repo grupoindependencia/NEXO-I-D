@@ -28,6 +28,8 @@ env:
   SERVICE_URL:         https://nexoid-821264474864.us-central1.run.app
   DB_NAME:             nexoid-db
   DB_USER:             nexoid
+  GOOGLE_CLIENT_ID:    694910698047-8t4cf9sm26r53mkl3hlkhcaeloa03tic.apps.googleusercontent.com
+  GOOGLE_HOSTED_DOMAIN: cindependencia.cl
 
 jobs:
   deploy:
@@ -52,6 +54,7 @@ jobs:
         run: |
           docker build \
             --build-arg VITE_API_URL="" \
+            --build-arg VITE_GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
             -t "${IMAGE}:${GITHUB_SHA}" \
             -t "${IMAGE}:latest" \
             -f Dockerfile .
@@ -73,6 +76,8 @@ jobs:
           DATABASE_URL: "postgresql://${DB_USER}:${NEXOID_DB_PASSWORD}@localhost/${DB_NAME}?host=/cloudsql/${INSTANCE_CONNECTION}"
           JWT_SECRET: "${NEXOID_JWT_SECRET}"
           JWT_REFRESH_SECRET: "${NEXOID_JWT_REFRESH_SECRET}"
+          GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+          GOOGLE_HOSTED_DOMAIN: "${GOOGLE_HOSTED_DOMAIN}"
           EOF
 
       - name: Deploy a Cloud Run

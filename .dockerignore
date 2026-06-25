@@ -1,0 +1,15 @@
+# No enviar al contexto de build (y evitar arrastrar artefactos del host)
+**/node_modules
+**/dist
+**/.vite
+.git
+.github
+**/.env
+**/.env.*
+*.log
+npm-debug.log*
+.vscode
+.idea
+**/Dockerfile.dev
+docker-compose*.yml
+*.md

@@ -73,6 +73,13 @@ async function main() {
       cargo: 'Técnico de Soporte y Mantenimiento',
       departamento: 'Soporte TI',
     },
+    {
+      correo: 'lbarrera@cindependencia.cl',
+      nombre: 'Luis Barrera',
+      rol: 'Admin',
+      cargo: 'Administrador de Plataforma',
+      departamento: 'TI',
+    },
   ];
 
   const usuariosCreados: Record<string, number> = {};

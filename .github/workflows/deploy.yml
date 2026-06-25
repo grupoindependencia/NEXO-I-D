@@ -1,0 +1,110 @@
+name: Deploy NEXO I+D → Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_seed:
+        description: 'Ejecutar el seed inicial sobre nexoid-db (crea usuarios/proyectos/checklists)'
+        type: boolean
+        default: false
+
+# Autenticación a GCP por Workload Identity Federation (sin claves)
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  PROJECT_ID:          cii-apps-prod
+  REGION:              us-central1
+  SERVICE:             nexoid
+  AR_REPO:             nexoid
+  IMAGE:               us-central1-docker.pkg.dev/cii-apps-prod/nexoid/app
+  INSTANCE_CONNECTION: cii-data-prod:us-central1:tier-1
+  RUNTIME_SA:          nexoid-run@cii-apps-prod.iam.gserviceaccount.com
+  DEPLOY_SA:           github-nexoid-deploy@cii-apps-prod.iam.gserviceaccount.com
+  WIF_PROVIDER:        projects/821264474864/locations/global/workloadIdentityPools/github-pool/providers/github-oidc
+  SERVICE_URL:         https://nexoid-821264474864.us-central1.run.app
+  DB_NAME:             nexoid-db
+  DB_USER:             nexoid
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Autenticación GCP (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SA }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configurar Docker para Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & push imagen
+        run: |
+          docker build \
+            --build-arg VITE_API_URL="" \
+            -t "${IMAGE}:${GITHUB_SHA}" \
+            -t "${IMAGE}:latest" \
+            -f Dockerfile .
+          docker push "${IMAGE}:${GITHUB_SHA}"
+          docker push "${IMAGE}:latest"
+
+      - name: Generar archivo de variables de entorno
+        env:
+          NEXOID_DB_PASSWORD:       ${{ secrets.NEXOID_DB_PASSWORD }}
+          NEXOID_JWT_SECRET:        ${{ secrets.NEXOID_JWT_SECRET }}
+          NEXOID_JWT_REFRESH_SECRET: ${{ secrets.NEXOID_JWT_REFRESH_SECRET }}
+        run: |
+          cat > env.yaml <<EOF
+          NODE_ENV: "production"
+          CORS_ORIGIN: "${SERVICE_URL}"
+          JWT_EXPIRES_IN: "2h"
+          JWT_REFRESH_EXPIRES_IN: "7d"
+          BCRYPT_COST: "12"
+          DATABASE_URL: "postgresql://${DB_USER}:${NEXOID_DB_PASSWORD}@localhost/${DB_NAME}?host=/cloudsql/${INSTANCE_CONNECTION}"
+          JWT_SECRET: "${NEXOID_JWT_SECRET}"
+          JWT_REFRESH_SECRET: "${NEXOID_JWT_REFRESH_SECRET}"
+          EOF
+
+      - name: Deploy a Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --image "${IMAGE}:${GITHUB_SHA}" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --service-account "${RUNTIME_SA}" \
+            --add-cloudsql-instances "${INSTANCE_CONNECTION}" \
+            --allow-unauthenticated \
+            --env-vars-file env.yaml \
+            --cpu 1 \
+            --memory 512Mi \
+            --max-instances 5 \
+            --startup-cpu-boost \
+            --quiet
+
+      - name: Seed inicial (opcional · workflow_dispatch run_seed=true)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_seed }}
+        run: |
+          gcloud run jobs deploy nexoid-seed \
+            --image "${IMAGE}:${GITHUB_SHA}" \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --service-account "${RUNTIME_SA}" \
+            --set-cloudsql-instances "${INSTANCE_CONNECTION}" \
+            --env-vars-file env.yaml \
+            --command sh \
+            --args "^@^-c@npx prisma migrate deploy && npm run seed" \
+            --quiet
+          gcloud run jobs execute nexoid-seed \
+            --region "${REGION}" \
+            --project "${PROJECT_ID}" \
+            --wait

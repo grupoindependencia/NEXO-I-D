@@ -16,6 +16,9 @@ COPY frontend/ ./
 # VITE_API_URL="" → el cliente llama a /api/... en el mismo origen (lo sirve Express).
 ARG VITE_API_URL=""
 ENV VITE_API_URL=$VITE_API_URL
+# Client ID público de Google (habilita el botón SSO en el frontend)
+ARG VITE_GOOGLE_CLIENT_ID=""
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
 RUN npm run build      # genera /fe/dist
 
 # ── Stage 2: Build del backend (TypeScript + Prisma Client) ─────────────────

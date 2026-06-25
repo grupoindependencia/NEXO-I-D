@@ -141,6 +141,32 @@
   font-size: 13px;
 }
 
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 18px;
+}
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.login-divider span {
+  font-size: 12px;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.login-google {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+  color-scheme: light;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .login-page { grid-template-columns: 40% 60%; }

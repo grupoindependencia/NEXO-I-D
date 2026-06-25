@@ -1,9 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { ApiError } from '@/lib/api';
 import './Login.css';
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (cfg: { client_id: string; callback: (r: { credential: string }) => void }) => void;
+          renderButton: (el: HTMLElement, opts: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+}
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
 const FEATURES = [
   'Gestión y seguimiento de proyectos tecnológicos I+D',
@@ -19,6 +34,8 @@ export function Login() {
   const [cargando, setCargando] = useState(false);
   const navigate = useNavigate();
   const login = useAuth((s) => s.login);
+  const loginGoogle = useAuth((s) => s.loginGoogle);
+  const googleBtnRef = useRef<HTMLDivElement>(null);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +48,46 @@ export function Login() {
       else setError('Error inesperado');
     } finally { setCargando(false); }
   };
+
+  // Carga Google Identity Services y renderiza el botón "Continuar con Google"
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return;
+
+    const init = () => {
+      if (!window.google || !googleBtnRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (resp) => {
+          setError(''); setCargando(true);
+          try {
+            await loginGoogle(resp.credential);
+            navigate('/');
+          } catch (err) {
+            setError(err instanceof ApiError ? err.message : 'No se pudo iniciar sesión con Google');
+          } finally { setCargando(false); }
+        },
+      });
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'outline', size: 'large', width: 360, text: 'continue_with', shape: 'rectangular', locale: 'es',
+      });
+    };
+
+    if (window.google) { init(); return; }
+
+    const SCRIPT_ID = 'google-gsi';
+    let script = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
+    if (!script) {
+      script = document.createElement('script');
+      script.id = SCRIPT_ID;
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+    script.addEventListener('load', init);
+    return () => script?.removeEventListener('load', init);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="login-page">
@@ -87,6 +144,13 @@ export function Login() {
               {cargando ? 'Ingresando...' : 'Iniciar sesión'}
             </button>
           </form>
+
+          {GOOGLE_CLIENT_ID && (
+            <>
+              <div className="login-divider"><span>o</span></div>
+              <div ref={googleBtnRef} className="login-google" />
+            </>
+          )}
         </div>
       </div>
     </div>

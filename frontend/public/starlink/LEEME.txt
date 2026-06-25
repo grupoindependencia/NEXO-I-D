@@ -1,0 +1,14 @@
+Imágenes del protocolo Starlink
+================================
+
+Guarda aquí las dos fotos del soporte (las que se adjuntaron en el chat),
+con EXACTAMENTE estos nombres para que la página las muestre:
+
+  soporte-standard.png   ->  foto del soporte mástil para antena Starlink Estándar
+  packing-list.png       ->  foto del "Packing list" (contenido del kit de soporte)
+
+Formatos aceptados: .png o .jpg (si usas .jpg, cambia la extensión en el código
+de Starlink.tsx o renómbralas a .png).
+
+Mientras el archivo no exista, la página muestra un marcador "Imagen pendiente"
+en su lugar (no se rompe el diseño).

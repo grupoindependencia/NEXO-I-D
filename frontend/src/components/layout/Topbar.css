@@ -1,0 +1,54 @@
+.topbar {
+  grid-area: topbar;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  position: sticky; top: 0; z-index: 50;
+}
+.top-label {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 600;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding-right: 16px;
+  border-right: 1px solid var(--line);
+}
+.project-chips {
+  display: flex; gap: 4px;
+  flex: 1; overflow-x: auto;
+  scrollbar-width: none;
+}
+.project-chips::-webkit-scrollbar { display: none; }
+.chip {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-2);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all .15s ease;
+  white-space: nowrap;
+  line-height: 1.4;
+  flex: 0 0 auto;
+}
+.chip:hover { background: var(--green-soft); color: var(--green-dark); }
+.chip.active {
+  background: var(--green);
+  color: #fff;
+  font-weight: 600;
+}
+.top-meta {
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+@media (max-width: 768px) {
+  .top-label { display: none; }
+}

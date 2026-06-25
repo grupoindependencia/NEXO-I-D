@@ -1,0 +1,76 @@
+.stl-viewer {
+  background: linear-gradient(180deg, #FAFBFA 0%, #EEF2EF 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  height: clamp(380px, 55vh, 620px);
+  width: 100%;
+}
+.stl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+  cursor: grab;
+}
+.stl-canvas:active { cursor: grabbing; }
+
+.stl-toolbar {
+  position: absolute; top: 12px; left: 12px; right: 12px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 10px; pointer-events: none; flex-wrap: wrap;
+}
+.stl-group {
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 4px;
+  display: inline-flex;
+  gap: 2px;
+  pointer-events: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.stl-btn {
+  background: transparent; border: none;
+  color: var(--ink-2);
+  padding: 6px 12px; border-radius: 6px;
+  font-size: 12px; font-weight: 500;
+  transition: all .15s ease;
+  white-space: nowrap;
+}
+.stl-btn:hover { background: var(--green-soft); color: var(--green-dark); }
+.stl-btn.active { background: var(--green); color: #fff; }
+
+.stl-info {
+  position: absolute; bottom: 12px; left: 12px;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  pointer-events: none;
+}
+
+.stl-loading {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.7);
+  color: var(--ink-3);
+  font-size: 13px;
+  pointer-events: none;
+}
+.stl-spinner {
+  width: 24px; height: 24px;
+  border: 2.5px solid var(--line);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: stlspin 1s linear infinite;
+  margin-right: 10px;
+}
+@keyframes stlspin { to { transform: rotate(360deg); } }
+
+@media (max-width: 768px) { .stl-viewer { height: 360px; } }

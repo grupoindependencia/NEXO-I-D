@@ -1,0 +1,58 @@
+.proto-loading {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 14px;
+}
+
+.project-banner {
+  background: var(--card);
+  border: 1px solid var(--line);
+  padding: 22px 26px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 24px;
+}
+.project-banner .pb-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 8px;
+}
+.project-banner h1 {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -.4px;
+  color: var(--ink);
+}
+.project-banner p {
+  margin-top: 8px;
+  color: var(--ink-2);
+  font-size: 13.5px;
+  max-width: 640px;
+  line-height: 1.55;
+}
+
+.placeholder {
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
+  padding: 56px 32px;
+  text-align: center;
+  margin-top: 24px;
+}
+.placeholder h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.placeholder p {
+  color: var(--ink-3);
+  font-size: 13px;
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.55;
+}

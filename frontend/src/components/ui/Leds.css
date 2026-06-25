@@ -1,0 +1,19 @@
+.leds {
+  display: flex; gap: 28px;
+  justify-content: center;
+  margin: 14px 0;
+  flex-wrap: wrap;
+  padding: 18px;
+  background: var(--bg);
+  border-radius: var(--radius);
+}
+.led-card { text-align: center; }
+.led {
+  border-radius: 50%;
+  margin: 0 auto 8px;
+}
+.led-green  { background: radial-gradient(circle at 35% 35%, #b3f0c2, #1fa845 70%); box-shadow: 0 0 16px rgba(31,168,69,.4), inset 0 -4px 8px rgba(0,0,0,.2); }
+.led-yellow { background: radial-gradient(circle at 35% 35%, #ffe48a, #e5a627 70%); box-shadow: 0 0 16px rgba(229,166,39,.4), inset 0 -4px 8px rgba(0,0,0,.2); }
+.led-red    { background: radial-gradient(circle at 35% 35%, #ffb3b3, #d43f3f 70%); box-shadow: 0 0 16px rgba(212,63,63,.4), inset 0 -4px 8px rgba(0,0,0,.2); }
+.led-name { font-weight: 600; font-size: 11.5px; color: var(--ink); letter-spacing: .3px; }
+.led-desc { font-size: 11px; color: var(--ink-3); margin-top: 2px; }

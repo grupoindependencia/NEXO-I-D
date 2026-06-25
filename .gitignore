@@ -1,0 +1,44 @@
+# ── Dependencias ────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Builds ──────────────────────────────────────────────────
+dist/
+build/
+frontend/dist/
+frontend/.vite/
+backend/dist/
+
+# ── Variables de entorno (NUNCA commitear .env con secretos) ─
+.env
+.env.local
+.env.*.local
+
+# ── Prisma ──────────────────────────────────────────────────
+backend/prisma/dev.db*
+# migration_lock.toml lo gestiona Prisma — sí se incluye
+# Las migrations SQL sí se commitean
+
+# ── Logs ────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── Sistemas operativos ──────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── IDEs ────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ── Misc ────────────────────────────────────────────────────
+coverage/
+.cache/
+.turbo/
+*.tsbuildinfo
+nul
+*.bak

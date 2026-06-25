@@ -1,0 +1,419 @@
+// ============================================================
+//  Prisma Schema · cii-comunicaciones
+//  Constructora Independencia · I+D Hardware
+// ============================================================
+//  REGLAS (ver CLAUDE.md):
+//  - Snake_case en BD, mapeado a camelCase en TS con @map/@@map
+//  - Auditoría obligatoria: created_by, created_at, modified_by, modified_at
+//  - Soft delete en entidades críticas: is_deleted, deleted_at, deleted_by
+//  - PostgreSQL fuera de Docker; conexión vía DATABASE_URL
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+//  USUARIOS (entidad central · creada primero)
+// ============================================================
+model Usuario {
+  usuarioId                  Int       @id @default(autoincrement()) @map("usuario_id")
+  usuarioCorreo              String    @unique @map("usuario_correo") @db.VarChar(255)
+  usuarioNombre              String    @map("usuario_nombre") @db.VarChar(255)
+  usuarioPassword            String?   @map("usuario_password") @db.VarChar(255) // nullable: preparado para SSO
+  usuarioDepartamento        String?   @map("usuario_departamento") @db.VarChar(100)
+  usuarioRol                 String    @map("usuario_rol") @db.VarChar(50) // Admin | DataOwner | Steward | Analyst | Viewer
+  usuarioCargo               String?   @map("usuario_cargo") @db.VarChar(150)
+  usuarioActivo              Boolean   @default(true) @map("usuario_activo")
+  usuarioProveedorAuth       String    @default("local") @map("usuario_proveedor_auth") @db.VarChar(50) // local | google
+  usuarioProveedorId         String?   @map("usuario_proveedor_id") @db.VarChar(255)
+  usuarioFechaCreacion       DateTime  @default(now()) @map("usuario_fecha_creacion")
+  usuarioFechaDesactivacion  DateTime? @map("usuario_fecha_desactivacion")
+  usuarioUltimoLogin         DateTime? @map("usuario_ultimo_login")
+
+  // Relaciones inversas
+  proyectosCreados           Proyecto[]     @relation("ProyectoCreador")
+  proyectosModificados       Proyecto[]     @relation("ProyectoModificador")
+  nodosCreados               Nodo[]         @relation("NodoCreador")
+  nodosModificados           Nodo[]         @relation("NodoModificador")
+  obrasCreadas               Obra[]         @relation("ObraCreador")
+  obrasModificadas           Obra[]         @relation("ObraModificador")
+  checklistsDiarios          ChecklistDiario[]
+  reportesSemanales          ReporteSemanal[] @relation("ReporteAutor")
+  reportesValidados          ReporteSemanal[] @relation("ReporteValidador")
+  incidentes                 Incidente[]    @relation("IncidenteResponsable")
+  refreshTokens              RefreshToken[]
+  plantillasResponsable      ChecklistPlantilla[] @relation("PlantillaResponsable")
+  plantillasSupervisor       ChecklistPlantilla[] @relation("PlantillaSupervisor")
+  ejecucionesRealizadas      ChecklistEjecucion[] @relation("EjecucionEjecutor")
+  ejecucionesRevisadas       ChecklistEjecucion[] @relation("EjecucionRevisor")
+  itemsCreados               ChecklistPlantillaItem[] @relation("ItemCreador")
+
+  @@map("usuarios")
+}
+
+model RefreshToken {
+  refreshTokenId       Int       @id @default(autoincrement()) @map("refresh_token_id")
+  refreshTokenToken    String    @unique @map("refresh_token_token") @db.VarChar(500)
+  refreshTokenExpira   DateTime  @map("refresh_token_expira")
+  refreshTokenRevocado Boolean   @default(false) @map("refresh_token_revocado")
+
+  usuarioId Int      @map("usuario_id")
+  usuario   Usuario  @relation(fields: [usuarioId], references: [usuarioId], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+//  PROYECTOS (NetSensor, LPR, Face Recognition, etc.)
+// ============================================================
+model Proyecto {
+  proyectoId            Int       @id @default(autoincrement()) @map("proyecto_id")
+  proyectoCodigo        String    @unique @map("proyecto_codigo") @db.VarChar(50) // netsensor, lpr, face, cubicacion, ivr
+  proyectoNombre        String    @map("proyecto_nombre") @db.VarChar(255)   // Corto, para chips/listas (ej. "NetSensor")
+  proyectoTitulo        String?   @map("proyecto_titulo") @db.VarChar(500)   // Largo, H1 del banner (ej. "Monitor de Calidad de Red · NetSensor ESP32")
+  proyectoDescripcion   String?   @map("proyecto_descripcion") @db.Text
+  proyectoEstado        String    @default("activo") @map("proyecto_estado") @db.VarChar(50) // activo | pausado | finalizado
+  proyectoEyebrow       String?   @map("proyecto_eyebrow") @db.VarChar(255)
+  proyectoSubtitulo     String?   @map("proyecto_subtitulo") @db.Text
+  proyectoOrden         Int       @default(0) @map("proyecto_orden")
+  // Ciclo de vida de desarrollo: investigacion | desarrollo | piloto | operativo | pausa
+  proyectoLifecycle     String    @default("operativo") @map("proyecto_lifecycle") @db.VarChar(50)
+  // Código del proyecto relacionado (cruce tecnológico), referencia al proyectoCodigo de otro Proyecto
+  proyectoRelacionado   String?   @map("proyecto_relacionado") @db.VarChar(50)
+
+  // Auditoría
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  modifiedBy  Int?     @map("modified_by")
+  modifiedAt  DateTime @default(now()) @map("modified_at")
+  // Soft delete (proyecto es entidad crítica)
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   Int?     @map("deleted_by")
+
+  creador     Usuario  @relation("ProyectoCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("ProyectoModificador", fields: [modifiedBy], references: [usuarioId])
+
+  obras       Obra[]
+  nodos       Nodo[]
+  secciones   ProtocoloSeccion[]
+  reportes    ReporteSemanal[]
+  plantillas  ChecklistPlantilla[]
+
+  @@map("proyectos")
+}
+
+// ============================================================
+//  PROTOCOLO · Secciones (Resumen, Hardware, Roles, etc.)
+// ============================================================
+model ProtocoloSeccion {
+  seccionId          Int       @id @default(autoincrement()) @map("seccion_id")
+  seccionCodigo      String    @map("seccion_codigo") @db.VarChar(50) // resumen, hardware, roles, etc.
+  seccionTitulo      String    @map("seccion_titulo") @db.VarChar(255)
+  seccionSubtitulo   String?   @map("seccion_subtitulo") @db.Text
+  seccionContenido   Json?     @map("seccion_contenido") // JSON estructurado
+  seccionOrden       Int       @default(0) @map("seccion_orden")
+  seccionVisible     Boolean   @default(true) @map("seccion_visible")
+
+  proyectoId  Int      @map("proyecto_id")
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [proyectoId], onDelete: Cascade)
+
+  // Auditoría
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  modifiedBy  Int?     @map("modified_by")
+  modifiedAt  DateTime @default(now()) @map("modified_at")
+
+  @@unique([proyectoId, seccionCodigo])
+  @@map("protocolo_secciones")
+}
+
+// ============================================================
+//  OBRAS donde se despliegan los proyectos
+// ============================================================
+model Obra {
+  obraId          Int       @id @default(autoincrement()) @map("obra_id")
+  obraCodigo      String    @unique @map("obra_codigo") @db.VarChar(50)
+  obraNombre      String    @map("obra_nombre") @db.VarChar(255)
+  obraDireccion   String?   @map("obra_direccion") @db.VarChar(500)
+  obraCiudad      String?   @map("obra_ciudad") @db.VarChar(100)
+  obraLatitud     Decimal?  @map("obra_latitud") @db.Decimal(10, 7)
+  obraLongitud   Decimal?  @map("obra_longitud") @db.Decimal(10, 7)
+  obraEstado     String    @default("activa") @map("obra_estado") @db.VarChar(50)
+  obraJefeId     Int?      @map("obra_jefe_id") // referencia opcional a un usuario que es jefe de obra
+
+  proyectoId  Int      @map("proyecto_id")
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [proyectoId])
+
+  nodos       Nodo[]
+  incidentes  Incidente[]
+
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  modifiedBy  Int?     @map("modified_by")
+  modifiedAt  DateTime @default(now()) @map("modified_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   Int?     @map("deleted_by")
+
+  creador     Usuario  @relation("ObraCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("ObraModificador", fields: [modifiedBy], references: [usuarioId])
+
+  @@map("obras")
+}
+
+// ============================================================
+//  NODOS · Dispositivos NetSensor (también extensible a LPR, etc.)
+// ============================================================
+model Nodo {
+  nodoId               Int       @id @default(autoincrement()) @map("nodo_id")
+  nodoMac              String    @unique @map("nodo_mac") @db.VarChar(17)
+  nodoNombre           String    @map("nodo_nombre") @db.VarChar(255)
+  nodoDescripcion      String?   @map("nodo_descripcion") @db.Text
+  nodoUbicacion        String?   @map("nodo_ubicacion") @db.VarChar(255) // Ej. "Administración/directorio"
+  nodoLatitud          Decimal?  @map("nodo_latitud") @db.Decimal(10, 7)
+  nodoLongitud         Decimal?  @map("nodo_longitud") @db.Decimal(10, 7)
+  nodoRepetidor        String?   @map("nodo_repetidor") @db.VarChar(100)
+  nodoEstado           String    @default("activo") @map("nodo_estado") @db.VarChar(50)
+  nodoConexion         String    @default("desconocido") @map("nodo_conexion") @db.VarChar(50) // conectado | desconectado | sin_gps
+  nodoUltimoVisto      DateTime? @map("nodo_ultimo_visto")
+  nodoFirmware         String?   @map("nodo_firmware") @db.VarChar(50)
+  nodoIntervaloReporte Int       @default(300) @map("nodo_intervalo_reporte") // segundos
+
+  obraId      Int      @map("obra_id")
+  obra        Obra     @relation(fields: [obraId], references: [obraId])
+  proyectoId  Int      @map("proyecto_id")
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [proyectoId])
+
+  metricas    NodoMetrica[]
+  incidentes  Incidente[]
+
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  modifiedBy  Int?     @map("modified_by")
+  modifiedAt  DateTime @default(now()) @map("modified_at")
+  isDeleted   Boolean  @default(false) @map("is_deleted")
+  deletedAt   DateTime? @map("deleted_at")
+  deletedBy   Int?     @map("deleted_by")
+
+  creador     Usuario  @relation("NodoCreador", fields: [createdBy], references: [usuarioId])
+  modificador Usuario? @relation("NodoModificador", fields: [modifiedBy], references: [usuarioId])
+
+  @@index([obraId])
+  @@index([proyectoId])
+  @@index([nodoUltimoVisto])
+  @@map("nodos")
+}
+
+// ============================================================
+//  MÉTRICAS de cada nodo (RSSI, ping, etc.)
+// ============================================================
+model NodoMetrica {
+  metricaId            BigInt    @id @default(autoincrement()) @map("metrica_id")
+  metricaTimestamp     DateTime  @default(now()) @map("metrica_timestamp")
+  metricaRssi          Int?      @map("metrica_rssi")
+  metricaCalidad       Int?      @map("metrica_calidad")
+  metricaCanal         Int?      @map("metrica_canal")
+  metricaIp            String?   @map("metrica_ip") @db.VarChar(45)
+  metricaGateway       String?   @map("metrica_gateway") @db.VarChar(45)
+  metricaUptime        Int?      @map("metrica_uptime")
+  metricaReconexiones  Int?      @map("metrica_reconexiones")
+  metricaGwPingAvg     Int?      @map("metrica_gw_ping_avg")
+  metricaGwLoss        Int?      @map("metrica_gw_loss")
+  metricaInetPingAvg   Int?      @map("metrica_inet_ping_avg")
+  metricaInetLoss      Int?      @map("metrica_inet_loss")
+
+  nodoId   Int  @map("nodo_id")
+  nodo     Nodo @relation(fields: [nodoId], references: [nodoId], onDelete: Cascade)
+
+  @@index([nodoId, metricaTimestamp])
+  @@map("nodo_metricas")
+}
+
+// ============================================================
+//  CHECKLIST DIARIO · Lo que completa el encargado de soporte
+// ============================================================
+model ChecklistDiario {
+  checklistId          Int       @id @default(autoincrement()) @map("checklist_id")
+  checklistFecha       DateTime  @map("checklist_fecha") @db.Date
+  checklistTurno       String    @default("manana") @map("checklist_turno") @db.VarChar(20) // manana | tarde
+  checklistNodosTotal  Int       @map("checklist_nodos_total")
+  checklistNodosOk     Int       @map("checklist_nodos_ok")
+  checklistNodosAlerta Int       @map("checklist_nodos_alerta")
+  checklistAcciones    String?   @map("checklist_acciones") @db.Text
+  checklistPendientes  String?   @map("checklist_pendientes") @db.Text
+  checklistObservaciones String? @map("checklist_observaciones") @db.Text
+
+  usuarioId  Int     @map("usuario_id")
+  usuario    Usuario @relation(fields: [usuarioId], references: [usuarioId])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  @@unique([checklistFecha, checklistTurno, usuarioId])
+  @@index([checklistFecha])
+  @@map("checklists_diarios")
+}
+
+// ============================================================
+//  REPORTE SEMANAL · Generado los viernes
+// ============================================================
+model ReporteSemanal {
+  reporteId            Int       @id @default(autoincrement()) @map("reporte_id")
+  reporteSemanaInicio  DateTime  @map("reporte_semana_inicio") @db.Date
+  reporteSemanaFin     DateTime  @map("reporte_semana_fin") @db.Date
+  reporteResumen       Json      @map("reporte_resumen")
+  reporteObservaciones String?   @map("reporte_observaciones") @db.Text
+  reporteAcciones      String?   @map("reporte_acciones") @db.Text
+  reporteEstado        String    @default("borrador") @map("reporte_estado") @db.VarChar(50) // borrador | validado | enviado
+  reporteFechaEnvio    DateTime? @map("reporte_fecha_envio")
+
+  proyectoId  Int      @map("proyecto_id")
+  proyecto    Proyecto @relation(fields: [proyectoId], references: [proyectoId])
+  autorId     Int      @map("autor_id")
+  autor       Usuario  @relation("ReporteAutor", fields: [autorId], references: [usuarioId])
+  validadoPor Int?     @map("validado_por")
+  validador   Usuario? @relation("ReporteValidador", fields: [validadoPor], references: [usuarioId])
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  modifiedAt  DateTime @default(now()) @map("modified_at")
+
+  @@index([proyectoId, reporteSemanaInicio])
+  @@map("reportes_semanales")
+}
+
+// ============================================================
+//  CHECKLISTS · Plantillas + Ejecuciones + Revisiones
+// ============================================================
+model ChecklistPlantilla {
+  plantillaId          Int       @id @default(autoincrement()) @map("plantilla_id")
+  plantillaCodigo      String    @unique @map("plantilla_codigo") @db.VarChar(80)
+  plantillaTitulo      String    @map("plantilla_titulo") @db.VarChar(255)
+  plantillaDescripcion String?   @map("plantilla_descripcion") @db.Text
+  plantillaFrecuencia  String    @map("plantilla_frecuencia") @db.VarChar(30)  // diaria | semanal | mensual | trimestral | anual
+  plantillaCargo       String    @map("plantilla_cargo") @db.VarChar(200)      // texto del cargo asignado (ej. "Técnico de Soporte Integral")
+  plantillaActiva      Boolean   @default(true) @map("plantilla_activa")
+
+  proyectoId    Int      @map("proyecto_id")
+  proyecto      Proyecto @relation(fields: [proyectoId], references: [proyectoId])
+
+  responsableId Int      @map("responsable_id")
+  responsable   Usuario  @relation("PlantillaResponsable", fields: [responsableId], references: [usuarioId])
+
+  supervisorId  Int      @map("supervisor_id")
+  supervisor    Usuario  @relation("PlantillaSupervisor", fields: [supervisorId], references: [usuarioId])
+
+  items         ChecklistPlantillaItem[]
+  ejecuciones   ChecklistEjecucion[]
+
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  modifiedBy  Int?     @map("modified_by")
+  modifiedAt  DateTime @default(now()) @map("modified_at")
+
+  @@map("checklist_plantillas")
+}
+
+model ChecklistPlantillaItem {
+  itemId            Int       @id @default(autoincrement()) @map("item_id")
+  itemOrden         Int       @map("item_orden")
+  itemTitulo        String    @map("item_titulo") @db.VarChar(500)
+  itemDescripcion   String?   @map("item_descripcion") @db.Text
+  itemTipo          String    @default("check") @map("item_tipo") @db.VarChar(30) // check | texto | numero | si_no_na
+  itemObligatorio   Boolean   @default(true) @map("item_obligatorio")
+  itemRecurrente    Boolean   @default(true) @map("item_recurrente")   // true: aparece en cada ejecución · false: solo en la próxima
+  itemActivo        Boolean   @default(true) @map("item_activo")       // false = archivado (tarea única consumida)
+  itemCreadoPor     Int?      @map("item_creado_por")
+  itemFechaCreacion DateTime  @default(now()) @map("item_fecha_creacion")
+
+  plantillaId Int                @map("plantilla_id")
+  plantilla   ChecklistPlantilla @relation(fields: [plantillaId], references: [plantillaId], onDelete: Cascade)
+  creador     Usuario?           @relation("ItemCreador", fields: [itemCreadoPor], references: [usuarioId])
+
+  respuestas  ChecklistRespuesta[]
+
+  @@index([plantillaId, itemOrden])
+  @@index([plantillaId, itemActivo])
+  @@map("checklist_plantilla_items")
+}
+
+model ChecklistEjecucion {
+  ejecucionId          Int       @id @default(autoincrement()) @map("ejecucion_id")
+  ejecucionFechaProgramada DateTime @map("ejecucion_fecha_programada") @db.Date
+  ejecucionEstado      String    @default("pendiente") @map("ejecucion_estado") @db.VarChar(30) // pendiente | en_progreso | completada | revisada | rechazada
+  ejecucionObservaciones String? @map("ejecucion_observaciones") @db.Text
+  ejecucionFechaInicio    DateTime? @map("ejecucion_fecha_inicio")
+  ejecucionFechaCompletada DateTime? @map("ejecucion_fecha_completada")
+  ejecucionFechaRevisada   DateTime? @map("ejecucion_fecha_revisada")
+  ejecucionComentarioRevisor String? @map("ejecucion_comentario_revisor") @db.Text
+
+  plantillaId Int                @map("plantilla_id")
+  plantilla   ChecklistPlantilla @relation(fields: [plantillaId], references: [plantillaId])
+
+  ejecutadoPor Int?    @map("ejecutado_por")
+  ejecutor     Usuario? @relation("EjecucionEjecutor", fields: [ejecutadoPor], references: [usuarioId])
+
+  revisadoPor  Int?    @map("revisado_por")
+  revisor      Usuario? @relation("EjecucionRevisor", fields: [revisadoPor], references: [usuarioId])
+
+  respuestas   ChecklistRespuesta[]
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  modifiedAt   DateTime @default(now()) @map("modified_at")
+
+  @@index([ejecucionEstado])
+  @@index([ejecucionFechaProgramada])
+  @@map("checklist_ejecuciones")
+}
+
+model ChecklistRespuesta {
+  respuestaId      Int       @id @default(autoincrement()) @map("respuesta_id")
+  respuestaValor   String?   @map("respuesta_valor") @db.Text   // marcado / texto / valor según tipo
+  respuestaComentario String? @map("respuesta_comentario") @db.Text
+
+  ejecucionId Int                @map("ejecucion_id")
+  ejecucion   ChecklistEjecucion @relation(fields: [ejecucionId], references: [ejecucionId], onDelete: Cascade)
+  itemId      Int                @map("item_id")
+  item        ChecklistPlantillaItem @relation(fields: [itemId], references: [itemId])
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  modifiedAt  DateTime @default(now()) @map("modified_at")
+
+  @@unique([ejecucionId, itemId])
+  @@map("checklist_respuestas")
+}
+
+// ============================================================
+//  INCIDENTES por nodo
+// ============================================================
+model Incidente {
+  incidenteId         Int       @id @default(autoincrement()) @map("incidente_id")
+  incidenteTipo       String    @map("incidente_tipo") @db.VarChar(100) // desconexion | rssi_bajo | reconexiones | etc.
+  incidenteSeveridad  String    @default("media") @map("incidente_severidad") @db.VarChar(20) // baja | media | alta | critica
+  incidenteEstado     String    @default("abierto") @map("incidente_estado") @db.VarChar(20) // abierto | en_proceso | resuelto | cerrado
+  incidenteDescripcion String   @map("incidente_descripcion") @db.Text
+  incidenteResolucion String?   @map("incidente_resolucion") @db.Text
+  incidenteFechaCierre DateTime? @map("incidente_fecha_cierre")
+
+  nodoId        Int      @map("nodo_id")
+  nodo          Nodo     @relation(fields: [nodoId], references: [nodoId])
+  obraId        Int      @map("obra_id")
+  obra          Obra     @relation(fields: [obraId], references: [obraId])
+  responsableId Int?     @map("responsable_id")
+  responsable   Usuario? @relation("IncidenteResponsable", fields: [responsableId], references: [usuarioId])
+
+  createdAt  DateTime @default(now()) @map("created_at")
+  modifiedAt DateTime @default(now()) @map("modified_at")
+
+  @@index([incidenteEstado])
+  @@index([nodoId])
+  @@map("incidentes")
+}

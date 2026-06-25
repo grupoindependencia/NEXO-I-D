@@ -1,0 +1,100 @@
+.reporte-mockup {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  max-width: 760px;
+  margin: 0 auto;
+  box-shadow: 0 2px 12px rgba(0,0,0,.04);
+  color: var(--ink);
+  line-height: 1.6;
+}
+.reporte-mockup p { margin-bottom: 14px; }
+
+.rep-header {
+  display: flex; align-items: center; gap: 24px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin: 22px 0 18px;
+  flex-wrap: wrap;
+}
+.rep-brand { display: flex; align-items: center; gap: 10px; }
+.rep-brand img { width: 32px; height: 32px; border-radius: 5px; }
+.rep-name { font-weight: 700; color: var(--green-deep); font-size: 15px; letter-spacing: -.2px; line-height: 1.1; }
+.rep-co { font-size: 11px; color: var(--ink-3); }
+.rep-legend {
+  display: flex; align-items: center; gap: 18px;
+  font-size: 12px; color: var(--ink-2);
+  margin-left: auto; flex-wrap: wrap;
+}
+.rep-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.rep-dot {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px;
+}
+
+.rep-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+  margin-bottom: 22px;
+}
+.rep-stats > div { background: var(--bg); border-radius: 8px; padding: 12px; }
+.rep-stats .k { font-size: 22px; font-weight: 700; color: var(--ink); }
+.rep-stats .l { font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+
+.rep-table {
+  width: 100%; border-collapse: collapse; font-size: 12.5px;
+  border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+}
+.rep-table thead tr { background: var(--green); color: #fff; }
+.rep-table th {
+  padding: 10px 12px; text-align: left;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: .5px; text-transform: uppercase;
+}
+.rep-table td { padding: 10px 12px; border-bottom: 1px solid var(--line-2); }
+.rep-table tr:last-child td { border-bottom: none; }
+
+.rep-obs {
+  margin-top: 22px;
+  padding: 14px 16px;
+  background: var(--green-soft);
+  border-left: 3px solid var(--green);
+  border-radius: 6px;
+}
+.rep-obs-h, .rep-acc-h {
+  font-weight: 600; color: var(--green-deep);
+  font-size: 12px; margin-bottom: 6px; letter-spacing: .3px;
+  text-transform: uppercase;
+}
+.rep-obs p { font-size: 13px; color: var(--ink); margin-bottom: 0; }
+.rep-acc { margin-top: 14px; font-size: 13px; color: var(--ink); line-height: 1.6; }
+.rep-acc ul { margin-top: 6px; padding-left: 20px; }
+.rep-firma {
+  margin-top: 24px; padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 12px; color: var(--ink-3);
+}
+
+@media (max-width: 640px) {
+  .rep-stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ============================================================
+   Impresión / descarga PDF del Reporte
+   Solo se imprime el mockup. Todo lo demás se oculta.
+   ============================================================ */
+@media print {
+  .reporte-extras { display: none !important; }
+  .project-banner { display: none !important; }
+  .reporte-mockup {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+  }
+  /* Mantener colores del badge de estado */
+  .rep-dot, .rep-table thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

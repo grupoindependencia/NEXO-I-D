@@ -88,7 +88,7 @@ jobs:
             --cpu 1 \
             --memory 512Mi \
             --max-instances 5 \
-            --startup-cpu-boost \
+            --cpu-boost \
             --quiet
 
       - name: Seed inicial (opcional · workflow_dispatch run_seed=true)
